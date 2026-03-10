@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramienta de Precios</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #1e1245;
+    --surface:   #2a1a5e;
+    --surface2:  #341f72;
+    --border:    rgba(192,132,252,0.25);
+    --border2:   rgba(192,132,252,0.45);
+    --accent:    #c084fc;
+    --accent2:   #f472b6;
+    --accent3:   #38bdf8;
+    --glow:      rgba(192,132,252,0.5);
+    --text:      #f5f0ff;
+    --muted:     #b09fd8;
+    --success:   #4ade80;
+    --error:     #f87171;
+    --cg:        #fb923c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(192,132,252,0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(244,114,182,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(56,189,248,0.12) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    padding: 14px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px rgba(168,85,247,0.4);
+  }
+
+  .logo-text h1 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.3px;
+  }
+
+  .logo-text span {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .dolar-badge {
+    background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.1));
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 7px 14px;
+    text-align: right;
+    backdrop-filter: blur(10px);
+  }
+
+  .dolar-badge .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .dolar-badge .valor {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+
+  .panel-title {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .field { margin-bottom: 10px; }
+
+  label:not(.imp-toggle) {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  input[type="number"],
+  input[type="text"],
+  select {
+    width: 100%;
+    background: rgba(139,92,246,0.08);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+    transition: all 0.2s;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    background: rgba(139,92,246,0.12);
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237c6fa0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  select option { background: #1a1630; }
+
+  .dropzone {
+    border: 2px dashed var(--border2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(139,92,246,0.04);
+    position: relative;
+  }
+
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(139,92,246,0.1);
+  }
+
+  .dropzone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .dropzone-icon { font-size: 1.4rem; margin-bottom: 4px; }
+
+  .dropzone-text {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .dropzone-file {
+    margin-top: 4px;
+    font-size: 0.72rem;
+    color: var(--success);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+
+  .radio-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .radio-btn {
+    flex: 1;
+    padding: 7px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    transition: all 0.2s;
+    background: rgba(139,92,246,0.04);
+  }
+
+  .radio-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .radio-btn.active {
+    background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(236,72,153,0.15));
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(168,85,247,0.2);
+  }
+
+  .imp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 7px 10px;
+    background: rgba(139,92,246,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .imp-toggle:hover { border-color: var(--accent); }
+  .imp-toggle input { width: auto; cursor: pointer; accent-color: var(--accent); }
+  .imp-toggle span { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 6px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(168,85,247,0.5);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    text-align: center;
+    min-height: 300px;
+  }
+
+  .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+  .empty-text { color: var(--muted); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; }
+
+  .progress-wrap {
+    padding: 48px 32px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 16px rgba(168,85,247,0.3);
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .progress-sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 20px;
+  }
+
+  .progress-bar-wrap {
+    background: rgba(139,92,246,0.1);
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+    width: 0%;
+    box-shadow: 0 0 10px rgba(168,85,247,0.6);
+  }
+
+  .progress-log {
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+  }
+
+  .progress-log .log-item { padding: 2px 0; }
+  .progress-log .log-ok { color: var(--success); }
+  .progress-log .log-err { color: var(--error); }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .results-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .downloads { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .btn-download {
+    padding: 9px 18px;
+    background: rgba(139,92,246,0.12);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-download:hover {
+    border-color: var(--accent);
+    background: rgba(139,92,246,0.2);
+    color: var(--accent);
+  }
+
+  .precio-editable {
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .precio-editable:hover {
+    background: rgba(167,139,250,0.13);
+  }
+  .precio-editable.editando {
+    padding: 0 !important;
+  }
+  .precio-input {
+    width: 110px;
+    background: rgba(30,18,69,0.95);
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    padding: 3px 7px;
+    text-align: right;
+    outline: none;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 13px 16px;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(139,92,246,0.05); }
+
+  td {
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    vertical-align: middle;
+  }
+
+  td.producto {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  td.precio {
+    color: var(--success);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td.usd {
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td.tienda { color: var(--muted); }
+
+  td.sin-resultado {
+    color: var(--error);
+    font-style: italic;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .pos-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(168,85,247,0.4);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: -1px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tab-btn {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .tab-btn.active-hg {
+    background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(236,72,153,0.15));
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tab-btn.inactive {
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .tab-btn.active-cg {
+    background: linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.1));
+    border-color: var(--cg);
+    color: var(--cg);
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.35s ease forwards; }
+
+  /* ── Toggle modo principal ── */
+  .modo-toggle {
+    display: flex;
+    background: rgba(139,92,246,0.08);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .modo-toggle button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    background: transparent;
+    color: var(--muted);
+  }
+  .modo-toggle button.active {
+    background: linear-gradient(135deg, rgba(192,132,252,0.3), rgba(244,114,182,0.2));
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(168,85,247,0.2);
+  }
+
+  /* ── Tabs posición/tiendas ── */
+  .calc-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    gap: 0;
+  }
+  .calc-tab {
+    flex: 1;
+    padding: 7px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .calc-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .calc-tab:hover:not(.active) { color: var(--text); }
+
+  /* ── Checkboxes de tiendas ── */
+  .tienda-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(139,92,246,0.05);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .tienda-row:hover { border-color: var(--accent); background: rgba(139,92,246,0.1); }
+  .tienda-row.tildada { border-color: rgba(192,132,252,0.4); background: rgba(139,92,246,0.1); }
+  .tienda-row label { flex: 1; font-size: 0.82rem; cursor: pointer; color: var(--text); }
+  .tienda-row .tienda-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.75rem; padding: 0; opacity: 0.6; transition: opacity 0.15s; }
+  .tienda-row .tienda-del:hover { opacity: 1; color: var(--error); }
+
+  /* Checkbox custom */
+  .tienda-check-custom {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border2);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    background: transparent;
+  }
+  .tienda-row.tildada .tienda-check-custom {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(168,85,247,0.4);
+  }
+  .tienda-check-custom::after {
+    content: '';
+    width: 8px; height: 5px;
+    border-left: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    transform: rotate(-45deg) translateY(-1px);
+    transition: all 0.15s;
+  }
+  .tienda-row.tildada .tienda-check-custom::after {
+    border-color: #fff;
+  }
+
+  /* ── Panel izquierdo compacto ── */
+  aside { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  aside::-webkit-scrollbar { width: 4px; }
+  aside::-webkit-scrollbar-track { background: transparent; }
+  aside::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 999px; }
+
+  /* ── Tabla con scroll visible ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    scroll-behavior: smooth;
+  }
+  .table-wrap::-webkit-scrollbar { height: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--surface2); border-radius: 0 0 16px 16px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; opacity: 0.5; }
+
+  /* ── Boton salir en header ── */
+  .btn-salir {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 8px;
+    color: #f87171;
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    margin-left: 12px;
+  }
+  .btn-salir:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">💰</div>
+      <div class="logo-text">
+        <h1>Herramienta de Precios</h1>
+        <span>HardGamers · Comparador automático</span>
+        <button onclick="confirmarSalir()" class="btn-salir">⏻ SALIR</button>
+      </div>
+    </div>
+    <div class="dolar-badge" style="display:flex;flex-direction:column;gap:4px;min-width:180px">
+      <span class="label">DÓLAR OFICIAL</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="valor" id="dolar-display" style="cursor:pointer" title="Click para editar">Cargando...</span>
+        <input type="number" id="dolar" step="0.01" placeholder="Manual"
+          style="display:none;width:90px;background:rgba(255,255,255,0.08);border:1px solid var(--accent);border-radius:6px;padding:3px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.85rem;text-align:center">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--muted)">Manual</span>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" id="dolar-auto" checked style="opacity:0;width:0;height:0;position:absolute">
+          <span id="dolar-switch" style="position:absolute;inset:0;background:var(--accent);border-radius:999px;transition:0.2s">
+            <span style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;transform:translateX(16px)" id="dolar-knob"></span>
+          </span>
+        </label>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--accent)">Auto</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <aside>
+      <div class="panel">
+
+        <div class="modo-toggle">
+          <button id="modo-calcular" onclick="switchModo('calcular')" class="active">🔍 CALCULAR</button>
+          <button id="modo-comparar" onclick="switchModo('comparar')">📊 COMPARAR</button>
+        </div>
+
+        <div class="panel-title" id="panel-title-txt">CONFIGURACIÓN</div>
+
+        <!-- MODO CALCULAR -->
+        <div id="config-calcular">
+          <div class="field">
+            <label>Archivo de productos</label>
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="archivo" accept=".xlsx,.txt" />
+              <div class="dropzone-icon">📂</div>
+              <div class="dropzone-text">Excel (.xlsx) o texto (.txt)</div>
+              <div class="dropzone-file" id="file-name"></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <div class="calc-tabs">
+            <button id="modo-pos-btn" class="calc-tab active" onclick="switchModoCalc('posicion')">📊 POSICIÓN</button>
+            <button id="modo-tiendas-btn" class="calc-tab" onclick="switchModoCalc('tiendas')">🏪 TIENDAS</button>
+          </div>
+
+          <div id="bloque-posicion">
+            <!-- Posición + % en una fila -->
+            <div style="display:flex;gap:8px">
+              <div class="field" style="flex:1.4">
+                <label>Posición</label>
+                <select id="posicion">
+                  <option value="1">1° más barato</option>
+                  <option value="2">2° más barato</option>
+                  <option value="3">3° más barato</option>
+                  <option value="4">4° más barato</option>
+                  <option value="5">5° más barato</option>
+                </select>
+              </div>
+              <div class="field" style="flex:1">
+                <label>% menos</label>
+                <input type="number" id="pct_menos" value="1" min="0" max="50" step="0.5">
+              </div>
+            </div>
+          </div>
+
+          <div id="bloque-tiendas-calc" style="display:none">
+            <div class="field">
+              <div id="tiendas-lista-calc" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="text" id="tienda-nueva-calc" placeholder="Agregar tienda..." onkeydown="if(event.key==='Enter')agregarTiendaCalc()"
+                  style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:0.78rem;box-sizing:border-box">
+                <button onclick="agregarTiendaCalc()" style="background:var(--accent);border:none;border-radius:8px;padding:5px 11px;color:white;cursor:pointer;font-size:0.78rem">+</button>
+              </div>
+              <div style="text-align:right;margin-top:4px">
+                <button onclick="restaurarTiendasCalc()" style="background:none;border:none;color:var(--muted);font-size:0.65rem;cursor:pointer;text-decoration:underline;padding:0">restaurar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Margen + IVA + II en una fila -->
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div class="field" style="flex:1">
+              <label>Margen %</label>
+              <input type="number" id="margen" value="20" min="0" max="100" step="1" oninput="sincronizarMargen(this.value)">
+            </div>
+            <div class="field" style="flex:1">
+              <label>IVA</label>
+              <div class="radio-group" id="iva-group">
+                <div class="radio-btn" data-val="21">21%</div>
+                <div class="radio-btn active" data-val="10.5">10.5%</div>
+              </div>
+            </div>
+            <div class="field" style="flex:1">
+              <label>II %</label>
+              <input type="number" id="imp_int_val" value="10.5" min="0" max="50" step="0.5" title="Impuesto interno (0 = sin impuesto)">
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Excluir tiendas</label>
+            <input type="text" id="tiendas_excluir" placeholder="ej: Maximus, HardCore">
+          </div>
+
+          <button class="btn-primary" id="btn-buscar" onclick="iniciarBusqueda()">
+            🔍 Buscar Precios
+          </button>
+        </div>
+
+        <!-- MODO COMPARAR -->
+        <div id="config-comparar" style="display:none">
+          <div class="field">
+            <label>Excel del vendedor</label>
+            <div class="dropzone" id="dropzone-cmp">
+              <input type="file" id="archivo-cmp" accept=".xlsx,.txt" />
+              <div class="dropzone-icon">📂</div>
+              <div class="dropzone-text">Excel (.xlsx) o texto (.txt)</div>
+              <div class="dropzone-file" id="file-name-cmp"></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <div class="field">
+            <label>Margen de ganancia (%)</label>
+            <input type="number" id="margen-cmp" value="20" min="0" max="100" step="1">
+          </div>
+
+          <div class="field">
+            <label>Tiendas a comparar</label>
+            <div id="tiendas-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="tienda-nueva" placeholder="Agregar tienda..." onkeydown="if(event.key==='Enter')agregarTienda()"
+                style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:0.78rem;box-sizing:border-box">
+              <button onclick="agregarTienda()" style="background:var(--accent);border:none;border-radius:8px;padding:6px 12px;color:white;cursor:pointer;font-size:0.78rem">+</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+              <div style="font-size:0.68rem;color:var(--muted)">Sin selección compara contra el más barato</div>
+              <button onclick="restaurarTiendas()" style="background:none;border:none;color:var(--muted);font-size:0.68rem;cursor:pointer;text-decoration:underline;padding:0">restaurar</button>
+            </div>
+          </div>
+
+          <button class="btn-primary" id="btn-comparar" onclick="iniciarComparacion()">
+            📊 Comparar Precios
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+    <main id="main-area">
+      <div class="panel empty">
+        <div class="empty-icon">✦</div>
+        <div class="empty-text">Configurá y subí tu Excel para comenzar</div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- Popup vendedor -->
+<div id="popup-vendedor" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px;min-width:340px;text-align:center;box-shadow:0 0 60px rgba(192,132,252,0.35)">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:24px">¿QUÉ QUERÉS EXPORTAR?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="exportarVendedor('hardgamers')" style="padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;cursor:pointer;font-size:0.9rem">HardGamers</button>
+      <button onclick="exportarVendedor('compragamer')" style="padding:13px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;cursor:pointer;font-size:0.9rem">CompraGamer</button>
+      <button onclick="exportarVendedor('ambos')" style="padding:13px;background:rgba(139,92,246,0.15);color:var(--text);border:1px solid var(--border2);border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;cursor:pointer;font-size:0.9rem">Ambos</button>
+      <button onclick="cerrarPopupVendedor()" style="padding:8px;background:transparent;color:var(--muted);border:none;font-family:'JetBrains Mono',monospace;cursor:pointer;font-size:0.75rem;margin-top:4px">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Sincronizar margen entre panel izquierdo y margen-live en resultados ──
+  function sincronizarMargen(valor) {
+    const live = document.getElementById('margen-live');
+    if (live) {
+      live.value = valor;
+      const m = parseFloat(valor);
+      if (!isNaN(m) && m >= 0) recalcularConMargen(m);
+    }
+  }
+
+  // ── Modo switch ──
+  function switchModo(modo) {
+    const isCalc = modo === 'calcular';
+    document.getElementById('config-calcular').style.display = isCalc ? '' : 'none';
+    document.getElementById('config-comparar').style.display = isCalc ? 'none' : '';
+    document.getElementById('panel-title-txt').textContent = isCalc ? 'CONFIGURACIÓN' : 'COMPARAR PRECIOS';
+    document.getElementById('modo-calcular').classList.toggle('active', isCalc);
+    document.getElementById('modo-comparar').classList.toggle('active', !isCalc);
+    document.getElementById('main-area').innerHTML = `<div class="panel empty"><div class="empty-icon">✦</div><div class="empty-text">Subí tu Excel para comenzar</div></div>`;
+  }
+
+  // ── Dropzone comparar ──
+  const dropzoneCmp   = document.getElementById('dropzone-cmp');
+  const archivoCmp    = document.getElementById('archivo-cmp');
+  const fileNameCmp   = document.getElementById('file-name-cmp');
+
+  archivoCmp.addEventListener('change', () => {
+    if (archivoCmp.files[0]) fileNameCmp.textContent = '✓ ' + archivoCmp.files[0].name;
+  });
+  dropzoneCmp.addEventListener('dragover', e => { e.preventDefault(); dropzoneCmp.classList.add('dragover'); });
+  dropzoneCmp.addEventListener('dragleave', () => dropzoneCmp.classList.remove('dragover'));
+  dropzoneCmp.addEventListener('drop', e => {
+    e.preventDefault(); dropzoneCmp.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) { archivoCmp.files = e.dataTransfer.files; fileNameCmp.textContent = '✓ ' + e.dataTransfer.files[0].name; }
+  });
+
+  // ── Comparar ──
+  async function iniciarComparacion() {
+    const archivo = archivoCmp.files[0];
+    if (!archivo) { alert('Seleccioná un archivo Excel primero.'); return; }
+    const dolar = parseFloat(document.getElementById('dolar').value);
+    if (!dolar) { alert('Ingresá el valor del dólar.'); return; }
+
+    const btn = document.getElementById('btn-comparar');
+    btn.disabled = true;
+    const filasAcumuladas = [];
+
+    document.getElementById('main-area').innerHTML = `
+      <div class="panel progress-wrap fade-in">
+        <div class="spinner"></div>
+        <div class="progress-title" id="progress-title">Comparando precios... 0%</div>
+        <div class="progress-sub" id="progress-sub">Iniciando comparación</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="progress-log" id="progress-log"></div>
+      </div>
+    `;
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('margen', document.getElementById('margen-cmp').value);
+    const tiendasSeleccionadas = Array.from(document.querySelectorAll('.tienda-check:checked')).map(cb => cb.value);
+    formData.append('tiendas_cmp', tiendasSeleccionadas.join(','));
+    formData.append('dolar', dolar);
+
+    try {
+      const r = await fetch('/api/comparar_stream', { method: 'POST', body: formData });
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const msg = JSON.parse(line.slice(6));
+            const log = document.getElementById('progress-log');
+
+            if (msg.tipo === 'progreso') {
+              const pct = Math.round((msg.actual - 1) / msg.total * 100);
+              document.getElementById('progress-bar').style.width = pct + '%';
+              document.getElementById('progress-title').textContent = `Comparando... ${pct}%`;
+              document.getElementById('progress-sub').textContent = `${msg.actual} de ${msg.total}: ${msg.producto}`;
+              log.innerHTML += `<div class="log-item">🔍 ${msg.producto}</div>`;
+              log.scrollTop = log.scrollHeight;
+            }
+
+            if (msg.tipo === 'resultado') {
+              filasAcumuladas.push(msg.fila);
+              const f = msg.fila;
+              const icono = f.estado === 'barato' ? '🟢' : f.estado === 'caro' ? '🔴' : '🟡';
+              log.innerHTML += `<div class="log-item">&nbsp;&nbsp;<span class="log-ok">${icono} $${Math.round(f.mi_precio).toLocaleString('es-AR')}</span></div>`;
+              log.scrollTop = log.scrollHeight;
+            }
+
+            if (msg.tipo === 'fin') {
+              document.getElementById('progress-bar').style.width = '100%';
+              document.getElementById('progress-title').textContent = '✓ Comparación completada';
+              setTimeout(() => mostrarComparacion({ filas: filasAcumuladas, dolar: msg.dolar }), 600);
+            }
+          } catch(e) {}
+        }
+      }
+    } catch(e) {
+      document.getElementById('main-area').innerHTML = `<div class="panel" style="text-align:center;padding:60px;color:var(--error)"><div style="font-size:2rem">⚠</div><div>${e.message}</div></div>`;
+    }
+    btn.disabled = false;
+  }
+
+  // Estado del comparador — filas con todos los competidores
+  let _filasComparar = [];
+
+  function calcularEstado(miPrecio, mercadoPrecio) {
+    if (!mercadoPrecio) return 'sin_datos';
+    const diff = (miPrecio - mercadoPrecio) / mercadoPrecio * 100;
+    if (diff < -5) return 'barato';
+    if (diff > 5)  return 'caro';
+    return 'par';
+  }
+
+  function pctColor(diff) {
+    if (diff === null) return 'var(--muted)';
+    if (diff < -5) return 'var(--success)';
+    if (diff > 5)  return 'var(--error)';
+    return 'var(--cg)';
+  }
+
+  function getTiendasSeleccionadas() {
+    return [..._tiendasTildadas].map(t => t.toLowerCase().trim());
+  }
+
+  function matchTienda(nombreTienda, tiendasSel) {
+    const tn = nombreTienda.toLowerCase().trim();
+    return tiendasSel.some(tc => tc.includes(tn) || tn.includes(tc));
+  }
+
+  function renderComparacion() {
+    const filas = _filasComparar;
+    if (!filas.length) return;
+    const margenActual = parseFloat(document.getElementById('margen-cmp')?.value) || 20;
+    const dolarActual  = parseFloat(document.getElementById('dolar')?.value) || _dolarActual || 1;
+
+    // Tiendas actualmente tildadas
+    const tiendasSel = getTiendasSeleccionadas();
+    const modoTiendas = tiendasSel.length > 0;
+    const tiendas = modoTiendas ? _tiendasGuardadas.filter(t => _tiendasTildadas.has(t)) : null;
+
+    let rows = '';
+    filas.forEach((f, idx) => {
+      const ti = (f.iva || 21) / 100 + (f.imp_int || 0) / 100;
+      const miPrecio = f.precio_usd * dolarActual * (1 + margenActual / 100) * (1 + ti);
+      let estadoFinal = 'sin_datos';
+      let celdasTiendas = '';
+
+      if (modoTiendas) {
+        const diffs = [];
+        tiendas.forEach(tc => {
+          // Buscar en por_tienda del servidor
+          const tcl = tc.toLowerCase().trim();
+          const comp = f.por_tienda ? Object.values(f.por_tienda).find(v => matchTienda(v.tienda, [tcl])) : null;
+          if (comp) {
+            const diff = ((miPrecio - comp.precio) / comp.precio * 100).toFixed(1);
+            const color = pctColor(parseFloat(diff));
+            const label = (parseFloat(diff) > 0 ? '+' : '') + diff + '%';
+            const link = comp.url ? '<a href="' + comp.url + '" target="_blank" style="color:inherit;margin-left:4px;opacity:0.6">🔗</a>' : '';
+            celdasTiendas += '<td style="font-family:JetBrains Mono,monospace;font-size:0.8rem;font-weight:700;color:' + color + ';text-align:center" title="' + comp.nombre + '">' + label + link + '</td>';
+            diffs.push(parseFloat(diff));
+          } else {
+            celdasTiendas += '<td style="color:var(--muted);text-align:center">—</td>';
+          }
+        });
+        if (diffs.length) {
+          const peor = Math.max(...diffs);
+          estadoFinal = peor < -5 ? 'barato' : peor > 5 ? 'caro' : 'par';
+          const prom = (diffs.reduce((a,b) => a+b, 0) / diffs.length).toFixed(1);
+          const promColor = pctColor(parseFloat(prom));
+          const promLabel = (parseFloat(prom) > 0 ? '+' : '') + prom + '%';
+          celdasTiendas += '<td style="font-family:JetBrains Mono,monospace;font-size:0.8rem;font-weight:700;color:' + promColor + ';text-align:center;border-left:1px solid var(--border)">' + promLabel + '</td>';
+        } else {
+          celdasTiendas += '<td style="color:var(--muted);text-align:center;border-left:1px solid var(--border)">—</td>';
+        }
+      } else {
+        const comp = f._compActual || (f.competidores && f.competidores[0]) || null;
+        const mercadoPrecio = comp ? comp.precio : f.mercado_precio;
+        const mercadoNombre = comp ? comp.nombre : f.mercado_nombre;
+        const mercadoUrl = comp ? comp.url : '';
+        const diff = mercadoPrecio ? ((miPrecio - mercadoPrecio) / mercadoPrecio * 100).toFixed(1) : null;
+        const diffLabel = diff ? (diff > 0 ? '+' : '') + diff + '%' : '-';
+        const color = pctColor(diff ? parseFloat(diff) : null);
+        estadoFinal = calcularEstado(miPrecio, mercadoPrecio);
+        const opts = f.competidores && f.competidores.length > 0
+          ? f.competidores.map((c, i) => '<option value="' + i + '"' + (f._compIdx===i ? ' selected' : '') + '>' + c.tienda + ' — ' + fmt(c.precio) + '</option>').join('')
+          : '<option>Sin datos</option>';
+        celdasTiendas = '<td class="precio" style="color:var(--muted)">' + (mercadoPrecio ? fmt(mercadoPrecio) : '-') + '</td>'
+          + '<td class="tienda" style="max-width:130px"><select class="comp-selector" data-idx="' + idx + '" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.7rem;padding:2px 4px;width:100%;cursor:pointer">' + opts + '</select></td>'
+          + '<td style="color:' + color + ';font-family:JetBrains Mono,monospace;font-size:0.78rem;font-weight:700">' + diffLabel + '</td>'
+          + '<td style="font-size:0.68rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (mercadoNombre||'') + '">' + (mercadoNombre||'-') + '</td>'
+          + '<td style="text-align:center">' + (mercadoUrl ? '<a href="' + mercadoUrl + '" target="_blank" style="color:var(--accent);text-decoration:none">🔗</a>' : '-') + '</td>';
+      }
+
+      const estadoColor = estadoFinal === 'barato' ? 'var(--success)' : estadoFinal === 'caro' ? 'var(--error)' : estadoFinal === 'par' ? 'var(--cg)' : 'var(--muted)';
+      const estadoLabel = estadoFinal === 'barato' ? '✓ Bien' : estadoFinal === 'caro' ? '✗ Caro' : estadoFinal === 'par' ? '~ Par' : '—';
+
+      const margenLabel = margenActual.toFixed(1).replace(/\.0$/, '') + '%';
+      rows += '<tr><td class="producto" title="' + f.producto + '">' + f.producto + '</td>'
+        + '<td class="precio">' + fmt(miPrecio) + '</td>'
+        + '<td style="font-family:JetBrains Mono,monospace;font-size:0.8rem;font-weight:700;color:var(--success);text-align:center">' + margenLabel + '</td>'
+        + celdasTiendas
+        + '<td style="color:' + estadoColor + ';font-family:JetBrains Mono,monospace;font-size:0.8rem;font-weight:700">' + estadoLabel + '</td></tr>';
+    });
+
+    const thTiendas = modoTiendas
+      ? tiendas.map(t => '<th>' + t.toUpperCase() + '</th>').join('') + '<th style="border-left:1px solid var(--border)">PROMEDIO</th>'
+      : '<th>MERCADO</th><th>COMPETIDOR</th><th>DIF %</th><th>NOMBRE</th><th>VER</th>';
+
+    const contarEstado = (e) => filas.filter(f => {
+      const ti2 = (f.iva || 21) / 100 + (f.imp_int || 0) / 100;
+      const mp2 = f.precio_usd * dolarActual * (1 + margenActual / 100) * (1 + ti2);
+      if (modoTiendas) {
+        const diffs2 = (f.competidores || []).filter(Boolean).map(c => (mp2 - c.precio) / c.precio * 100);
+        if (!diffs2.length) return false;
+        const peor = Math.max(...diffs2);
+        return e === 'barato' ? peor < -5 : e === 'caro' ? peor > 5 : peor >= -5 && peor <= 5;
+      }
+      const c = f._compActual || f.competidores?.[0];
+      return calcularEstado(mp2, c?.precio) === e;
+    }).length;
+
+    document.getElementById('main-area').innerHTML = '<div class="fade-in">'
+      + '<div class="results-header"><div>'
+      + '<div class="results-title">📊 Comparación de precios</div>'
+      + '<div style="font-size:0.75rem;color:var(--muted);font-family:JetBrains Mono,monospace;margin-top:4px">'
+      + filas.length + ' productos · <span style="color:var(--success)">✓ ' + contarEstado("barato") + ' bien</span> · <span style="color:var(--error)">✗ ' + contarEstado("caro") + ' caros</span> · <span style="color:var(--cg)">~ ' + contarEstado("par") + ' par</span></div>'
+      + '</div></div>'
+      + '<div class="table-wrap"><table>'
+      + '<thead><tr><th>PRODUCTO</th><th>MI PRECIO</th><th>MARGEN</th>' + thTiendas + '<th>ESTADO</th></tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table></div></div>';
+
+    document.querySelectorAll('.comp-selector').forEach(sel => {
+      sel.addEventListener('change', function() {
+        const idx = parseInt(this.dataset.idx);
+        _filasComparar[idx]._compActual = _filasComparar[idx].competidores[parseInt(this.value)];
+        _filasComparar[idx]._compIdx = parseInt(this.value);
+        renderComparacion();
+      });
+    });
+  }
+
+
+  function mostrarComparacion(data) {
+    _filasComparar = data.filas;
+    renderComparacion();
+  }
+
+  // ── Tiendas con checkboxes ──────────────────────────────────────────
+  const TIENDAS_DEFAULT = ['Xt-PC', 'Logg', 'Full H4rd'];
+  let _tiendasGuardadas  = (() => { const g = JSON.parse(localStorage.getItem('tiendas_cmp') || 'null'); if (!g || g.length === 0) { localStorage.setItem('tiendas_cmp', JSON.stringify(TIENDAS_DEFAULT)); return [...TIENDAS_DEFAULT]; } return g; })();
+  // Set de tiendas tildadas — por defecto todas
+  let _tiendasTildadas = new Set(JSON.parse(localStorage.getItem('tiendas_tildadas') || 'null') || _tiendasGuardadas);
+
+  function guardarTildadas() {
+    localStorage.setItem('tiendas_tildadas', JSON.stringify([..._tiendasTildadas]));
+  }
+
+  function _buildTiendaRow(t, i, checkClass, idPrefix, onChangeFn, onDeleteFn) {
+    const tildada = _tiendasTildadas.has(t);
+    const div = document.createElement('div');
+    div.className = 'tienda-row' + (tildada ? ' tildada' : '');
+    div.id = idPrefix + 'row-' + i;
+    div.innerHTML = `
+      <input type="checkbox" class="${checkClass}" value="${t}" id="${idPrefix}${i}" ${tildada ? 'checked' : ''} style="display:none">
+      <div class="tienda-check-custom" id="${idPrefix}box-${i}"></div>
+      <label for="${idPrefix}${i}" style="flex:1;font-size:0.82rem;cursor:pointer;color:var(--text)">${t}</label>
+      <button class="tienda-del" onclick="${onDeleteFn}(${i})" title="Eliminar">✕</button>`;
+    // Toggle al hacer click en la fila
+    div.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tienda-del')) return;
+      const cb = div.querySelector('.' + checkClass);
+      cb.checked = !cb.checked;
+      if (cb.checked) _tiendasTildadas.add(t); else _tiendasTildadas.delete(t);
+      div.classList.toggle('tildada', cb.checked);
+      guardarTildadas();
+      onChangeFn();
+    });
+    return div;
+  }
+
+  function renderTiendas() {
+    const lista = document.getElementById('tiendas-lista');
+    lista.innerHTML = '';
+    _tiendasGuardadas.forEach((t, i) => {
+      lista.appendChild(_buildTiendaRow(t, i, 'tienda-check', 'tc-', () => {
+        if (_filasComparar.length > 0) renderComparacion();
+      }, 'eliminarTienda'));
+    });
+  }
+
+  // ── Modo calcular: toggle posición/tiendas ──────────────────────────
+  let _modoCalc = 'posicion'; // 'posicion' o 'tiendas'
+
+  function switchModoCalc(modo) {
+    _modoCalc = modo;
+    document.getElementById('bloque-posicion').style.display = modo === 'posicion' ? '' : 'none';
+    document.getElementById('bloque-tiendas-calc').style.display = modo === 'tiendas' ? '' : 'none';
+    document.getElementById('modo-pos-btn').classList.toggle('active', modo === 'posicion');
+    document.getElementById('modo-tiendas-btn').classList.toggle('active', modo === 'tiendas');
+    if (modo === 'tiendas') renderTiendasCalc();
+  }
+
+  // Tiendas del modo calcular — comparten la misma lista que el comparador
+  function renderTiendasCalc() {
+    const lista = document.getElementById('tiendas-lista-calc');
+    if (!lista) return;
+    lista.innerHTML = '';
+    _tiendasGuardadas.forEach((t, i) => {
+      lista.appendChild(_buildTiendaRow(t, i, 'tienda-check-calc', 'tcc-', () => {
+        renderTiendas();
+      }, 'eliminarTiendaCalc'));
+    });
+  }
+
+  function agregarTiendaCalc() {
+    const input = document.getElementById('tienda-nueva-calc');
+    const nombre = input.value.trim();
+    if (!nombre) return;
+    if (_tiendasGuardadas.map(t => t.toLowerCase()).includes(nombre.toLowerCase())) { input.value = ''; return; }
+    _tiendasGuardadas.push(nombre);
+    _tiendasTildadas.add(nombre);
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendasCalc();
+    renderTiendas();
+    input.value = '';
+  }
+
+  function eliminarTiendaCalc(idx) {
+    const nombre = _tiendasGuardadas[idx];
+    _tiendasGuardadas.splice(idx, 1);
+    _tiendasTildadas.delete(nombre);
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendasCalc();
+    renderTiendas();
+  }
+
+  function restaurarTiendasCalc() {
+    _tiendasGuardadas = [...TIENDAS_DEFAULT];
+    _tiendasTildadas = new Set(TIENDAS_DEFAULT);
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendasCalc();
+    renderTiendas();
+  }
+
+  function restaurarTiendas() {
+    _tiendasGuardadas = [...TIENDAS_DEFAULT];
+    _tiendasTildadas = new Set(TIENDAS_DEFAULT);
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendas();
+  }
+
+  function agregarTienda() {
+    const input = document.getElementById('tienda-nueva');
+    const nombre = input.value.trim();
+    if (!nombre) return;
+    if (_tiendasGuardadas.map(t => t.toLowerCase()).includes(nombre.toLowerCase())) {
+      input.value = '';
+      return;
+    }
+    _tiendasGuardadas.push(nombre);
+    _tiendasTildadas.add(nombre); // nueva tienda siempre tildada
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendas();
+    input.value = '';
+  }
+
+  function eliminarTienda(idx) {
+    const nombre = _tiendasGuardadas[idx];
+    _tiendasGuardadas.splice(idx, 1);
+    _tiendasTildadas.delete(nombre);
+    localStorage.setItem('tiendas_cmp', JSON.stringify(_tiendasGuardadas));
+    guardarTildadas();
+    renderTiendas();
+    if (_filasComparar.length > 0) renderComparacion();
+  }
+
+  renderTiendas();
+
+  // Listener margen-cmp → re-renderizar comparación si hay datos
+  document.getElementById('margen-cmp').addEventListener('input', function() {
+    if (_filasComparar.length > 0) renderComparacion();
+  });
+
+  // Listener dólar unificado → re-renderizar comparación si hay datos
+  document.getElementById('dolar').addEventListener('input', function() {
+    if (_filasComparar.length > 0) renderComparacion();
+  });
+
+  async function confirmarSalir() {
+    if (confirm('¿Cerrar la herramienta?')) {
+      await fetch('/api/salir', { method: 'POST' });
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f0a1e;color:#a78bfa;font-family:JetBrains Mono,monospace;font-size:1rem">✓ Herramienta cerrada. Podés cerrar esta pestaña.</div>';
+    }
+  }
+
+  const dolarAutoCheck = document.getElementById('dolar-auto');
+  const dolarInput     = document.getElementById('dolar');
+  const dolarKnob      = document.getElementById('dolar-knob');
+  const dolarSwitchEl  = document.getElementById('dolar-switch');
+  const dolarDisplay   = document.getElementById('dolar-display');
+  let dolarValor = null;
+
+  dolarAutoCheck.addEventListener('change', () => {
+    const auto = dolarAutoCheck.checked;
+    dolarDisplay.style.display = auto ? '' : 'none';
+    dolarInput.style.display = auto ? 'none' : '';
+    dolarKnob.style.transform = auto ? 'translateX(16px)' : 'translateX(0)';
+    dolarSwitchEl.style.background = auto ? 'var(--accent)' : 'var(--border)';
+    if (auto && dolarValor) { dolarInput.value = dolarValor; dolarDisplay.textContent = '$' + dolarValor.toLocaleString('es-AR', {minimumFractionDigits: 2}); }
+    if (!auto) { dolarInput.value = dolarValor || ''; dolarInput.focus(); }
+    if (_filasComparar.length > 0) renderComparacion();
+  });
+
+  // Click en display → pasar a manual
+  dolarDisplay.addEventListener('click', () => {
+    dolarAutoCheck.checked = false;
+    dolarAutoCheck.dispatchEvent(new Event('change'));
+  });
+
+  async function cargarDolar() {
+    try {
+      const r = await fetch('/api/dolar');
+      const d = await r.json();
+      if (d.valor) {
+        dolarValor = d.valor;
+        document.getElementById('dolar-display').textContent = '$' + d.valor.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        document.getElementById('dolar').value = d.valor;
+        document.getElementById('dolar').value = d.valor;
+      }
+    } catch(e) {
+      document.getElementById('dolar-display').textContent = 'Error';
+    }
+  }
+  cargarDolar();
+
+  // ── IVA radio ──
+  let ivaSeleccionado = 10.5;
+  document.querySelectorAll('#iva-group .radio-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#iva-group .radio-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ivaSeleccionado = parseFloat(btn.dataset.val);
+    });
+  });
+
+  // ── Dropzone ──
+  const dropzone    = document.getElementById('dropzone');
+  const archivoInput = document.getElementById('archivo');
+  const fileNameEl  = document.getElementById('file-name');
+
+  archivoInput.addEventListener('change', () => {
+    if (archivoInput.files[0]) fileNameEl.textContent = '✓ ' + archivoInput.files[0].name;
+  });
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) {
+      archivoInput.files = e.dataTransfer.files;
+      fileNameEl.textContent = '✓ ' + e.dataTransfer.files[0].name;
+    }
+  });
+
+  // ── Buscar ──
+  async function iniciarBusqueda() {
+    const archivo = archivoInput.files[0];
+    if (!archivo) { alert('Seleccioná un archivo Excel primero.'); return; }
+    const dolar = parseFloat(document.getElementById('dolar').value);
+    if (!dolar) { alert('Ingresá el valor del dólar.'); return; }
+
+    const btn = document.getElementById('btn-buscar');
+    btn.disabled = true;
+    const filasAcumuladas = [];
+
+    document.getElementById('main-area').innerHTML = `
+      <div class="panel progress-wrap fade-in">
+        <div class="spinner"></div>
+        <div class="progress-title" id="progress-title">Buscando precios... 0%</div>
+        <div class="progress-sub" id="progress-sub">Iniciando búsqueda</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="progress-log" id="progress-log"></div>
+      </div>
+    `;
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('posicion', document.getElementById('posicion').value);
+    formData.append('pct_menos', document.getElementById('pct_menos').value);
+    formData.append('margen', document.getElementById('margen').value);
+    formData.append('iva', ivaSeleccionado);
+    formData.append('dolar', dolar);
+    formData.append('tiendas_excluir', document.getElementById('tiendas_excluir').value);
+    formData.append('imp_int_override', document.getElementById('imp_int_val')?.value || '10.5');
+    formData.append('modo_calc', _modoCalc);
+    if (_modoCalc === 'tiendas') {
+      const tsel = [..._tiendasTildadas].filter(t => _tiendasGuardadas.includes(t));
+      formData.append('tiendas_calc', tsel.join(','));
+    }
+
+    try {
+      const r = await fetch('/api/buscar_stream', { method: 'POST', body: formData });
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const msg = JSON.parse(line.slice(6));
+            const log = document.getElementById('progress-log');
+
+            if (msg.tipo === 'progreso') {
+              const pct = Math.round((msg.actual - 1) / msg.total * 100);
+              document.getElementById('progress-bar').style.width = pct + '%';
+              document.getElementById('progress-title').textContent = `Buscando precios... ${pct}%`;
+              document.getElementById('progress-sub').textContent = `${msg.actual} de ${msg.total}: ${msg.producto}`;
+              log.innerHTML += `<div class="log-item">🔍 ${msg.producto}</div>`;
+              log.scrollTop = log.scrollHeight;
+            }
+
+            if (msg.tipo === 'resultado') {
+              filasAcumuladas.push(msg.fila);
+              const f = msg.fila;
+              if (!f.es_compragamer) {
+                const estado = f.precio_venta
+                  ? `<span class="log-ok">✓ $${Math.round(f.precio_venta).toLocaleString('es-AR')} — ${f.competidor_tienda}</span>`
+                  : `<span class="log-err">✗ Sin resultados</span>`;
+                log.innerHTML += `<div class="log-item">&nbsp;&nbsp;${estado}</div>`;
+                log.scrollTop = log.scrollHeight;
+              }
+            }
+
+            if (msg.tipo === 'fin') {
+              document.getElementById('progress-bar').style.width = '100%';
+              document.getElementById('progress-title').textContent = '✓ Búsqueda completada';
+              setTimeout(() => mostrarResultados({ filas: filasAcumuladas, dolar: msg.dolar }), 600);
+            }
+          } catch(e) {}
+        }
+      }
+    } catch(e) {
+      document.getElementById('main-area').innerHTML = `
+        <div class="panel" style="text-align:center;padding:60px;color:var(--error)">
+          <div style="font-size:2.5rem;margin-bottom:16px">⚠</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem">Error: ${e.message}</div>
+        </div>
+      `;
+    }
+    btn.disabled = false;
+  }
+
+  function fmt(n) {
+    if (!n) return '-';
+    return '$' + Math.round(n).toLocaleString('es-AR');
+  }
+
+  function fmtUSD(n) {
+    if (!n) return '-';
+    return 'U$D ' + n.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  let _filasRaw = null;
+  let _dolarActual = null;
+  let _ivaActual = null;
+
+  function calcularUSD(precio_venta, margen, iva, imp_int, dolar) {
+    const total_imp = iva / 100 + imp_int / 100;
+    const neto = (precio_venta / (1 + margen / 100)) / (1 + total_imp);
+    return neto / dolar;
+  }
+
+  function recalcularConMargen(margen) {
+    if (!_filasRaw) return;
+    const filasHG = _filasRaw.filter(f => !f.es_compragamer);
+    const filasCG = _filasRaw.filter(f => f.es_compragamer);
+
+    const recalc = (lista) => lista.map(f => {
+      if (!f.precio_venta) return f;
+      const nuevo_usd = calcularUSD(f.precio_venta, margen, _ivaActual, f.imp_int || 0, _dolarActual);
+      return {...f, precio_compra_usd: Math.round(nuevo_usd * 100) / 100};
+    });
+
+    renderTablas(recalc(filasHG), recalc(filasCG));
+
+    fetch('/api/actualizar_margen', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({margen, dolar: _dolarActual, iva: _ivaActual})
+    });
+  }
+
+  function renderTablas(filasHG, filasCG) {
+    // Detectar si estamos en modo tiendas
+    const esModoTiendas = filasHG[0]?.modo_calc === 'tiendas';
+
+    function buildRows(lista, esCG) {
+      let rows = '';
+      lista.forEach(f => {
+        if (!f.precio_venta) {
+          rows += `<tr>
+            <td class="producto">${f.producto}</td>
+            <td class="sin-resultado" colspan="${esModoTiendas ? _tiendasGuardadas.filter(t => _tiendasTildadas.has(t)).length + 4 : 6}">SIN RESULTADOS</td>
+          </tr>`;
+        } else {
+          const priceColor = esCG ? 'color:var(--cg)' : '';
+          const usdColor   = esCG ? 'color:var(--cg)' : '';
+          const idx = lista.indexOf(f);
+
+          // Celdas de tiendas si modo tiendas
+          let celdasTiendas = '';
+          if (esModoTiendas && !esCG) {
+            const tiendasSel = _tiendasGuardadas.filter(t => _tiendasTildadas.has(t));
+            tiendasSel.forEach(tc => {
+              const tcl = tc.toLowerCase().trim();
+              const comp = f.por_tienda ? Object.values(f.por_tienda).find(v => matchTienda(v.tienda, [tcl])) : null;
+              if (comp) {
+                const diff = ((f.precio_venta - comp.precio) / comp.precio * 100).toFixed(1);
+                const color = pctColor(parseFloat(diff));
+                const label = (parseFloat(diff) > 0 ? '+' : '') + diff + '%';
+                celdasTiendas += `<td style="font-family:JetBrains Mono,monospace;font-size:0.8rem;font-weight:700;color:${color};text-align:center">${label}</td>`;
+              } else {
+                celdasTiendas += `<td style="color:var(--muted);text-align:center">—</td>`;
+              }
+            });
+          }
+
+          rows += `<tr>
+            <td class="producto" title="${f.competidor_nombre}">${f.producto}</td>
+            <td class="precio precio-editable" style="${priceColor}" data-idx="${idx}" data-escg="${esCG}" title="Click para editar precio">${fmt(f.precio_venta)}</td>
+            ${esModoTiendas && !esCG ? celdasTiendas : `
+            <td class="tienda">${f.competidor_tienda}</td>
+            <td class="pos">${esCG ? '<span style="color:var(--muted)">—</span>' : `<span class="pos-badge">${f.posicion_real}</span>`}</td>`}
+            <td class="usd usd-cell" data-idx="${idx}" data-escg="${esCG}" style="${usdColor}">${fmtUSD(f.precio_compra_usd)}</td>
+            <td class="tienda comp-nombre-editable" style="font-size:0.72rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" data-idx="${idx}" data-escg="${esCG}">${f.competidor_nombre} <span style="opacity:0.4;font-size:0.7rem">✏️</span></td>
+            <td style="text-align:center">${f.competidor_url ? `<a href="${f.competidor_url}" target="_blank" style="color:var(--accent);font-size:1rem;text-decoration:none">🔗</a>` : '<span style="color:var(--muted)">—</span>'}</td>
+          </tr>`;
+        }
+      });
+      return rows;
+    }
+
+    const thTiendas = esModoTiendas
+      ? _tiendasGuardadas.filter(t => _tiendasTildadas.has(t)).map(t => `<th>${t.toUpperCase()}</th>`).join('')
+      : `<th>TIENDA</th><th>POS.</th>`;
+
+    const tableHtml = (rows) => `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>PRODUCTO</th><th>PRECIO VENTA</th>${thTiendas}
+            <th>COMPRA USD</th><th>COMPETIDOR</th><th>VER</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+    const panelHG = document.getElementById('panel-hg');
+    const panelCG = document.getElementById('panel-cg');
+    if (panelHG) panelHG.innerHTML = tableHtml(buildRows(filasHG, false));
+    if (panelCG) panelCG.innerHTML = tableHtml(buildRows(filasCG, true));
+    _filasHGEdit = filasHG;
+    _filasCGEdit = filasCG;
+    attachPrecioEditable();
+  }
+
+  // ── Edición de precio en tabla ──────────────────────────────
+  let _filasHGEdit = [];
+  let _filasCGEdit = [];
+
+  function abrirEditorPrecio(idx, esCG) {
+    const lista = esCG ? _filasCGEdit : _filasHGEdit;
+    const fila  = lista[idx];
+    if (!fila) return;
+    // Encontrar la celda de precio correspondiente y simular click
+    const precioCell = document.querySelector(`.precio-editable[data-idx="${idx}"][data-escg="${esCG}"]`);
+    if (precioCell) precioCell.click();
+  }
+
+  function attachPrecioEditable() {
+    // Click en precio → editar precio directamente
+    document.querySelectorAll('.precio-editable').forEach(cell => {
+      cell.addEventListener('click', function() {
+        if (this.classList.contains('editando')) return;
+        const idx   = parseInt(this.dataset.idx);
+        const esCG  = this.dataset.escg === 'true';
+        const lista = esCG ? _filasCGEdit : _filasHGEdit;
+        const fila  = lista[idx];
+        if (!fila) return;
+
+        const precioActual = fila.precio_venta;
+        this.classList.add('editando');
+        this.innerHTML = `<input class="precio-input" type="number" value="${precioActual}" />`;
+        const input = this.querySelector('input');
+        input.focus();
+        input.select();
+
+        const confirmar = () => {
+          const nuevo = parseFloat(input.value);
+          if (!isNaN(nuevo) && nuevo > 0) {
+            fila.precio_venta = nuevo;
+            const margen = parseFloat(document.getElementById('margen-input')?.value || 20);
+            const nuevo_usd = calcularUSD(nuevo, margen, _ivaActual, fila.imp_int || 0, _dolarActual);
+            fila.precio_compra_usd = Math.round(nuevo_usd * 100) / 100;
+            const usdCell = document.querySelector(`.usd-cell[data-idx="${idx}"][data-escg="${esCG}"]`);
+            if (usdCell) usdCell.textContent = fmtUSD(fila.precio_compra_usd);
+          }
+          this.classList.remove('editando');
+          this.textContent = fmt(fila.precio_venta);
+        };
+
+        input.addEventListener('blur', confirmar);
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') confirmar();
+          if (e.key === 'Escape') {
+            this.classList.remove('editando');
+            this.textContent = fmt(fila.precio_venta);
+          }
+        });
+      });
+    });
+
+    // Click en nombre del competidor → abre popup para editar precio y nombre
+    document.querySelectorAll('.comp-nombre-editable').forEach(cell => {
+      cell.addEventListener('click', function() {
+        const idx  = parseInt(this.dataset.idx);
+        const esCG = this.dataset.escg === 'true';
+        const lista = esCG ? _filasCGEdit : _filasHGEdit;
+        const fila  = lista[idx];
+        if (!fila) return;
+
+        // Crear popup inline dentro de la celda
+        this.style.overflow = 'visible';
+        this.style.whiteSpace = 'normal';
+        this.innerHTML = `
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:220px;position:relative;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.4)">
+            <div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Editar competidor</div>
+            <input class="edit-nombre-input" placeholder="Nombre del competidor" value="${fila.competidor_nombre || ''}"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:0.78rem;margin-bottom:8px;box-sizing:border-box"/>
+            <input class="edit-precio-input" type="number" placeholder="Precio ARS" value="${fila.precio_venta || ''}"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:0.78rem;margin-bottom:8px;box-sizing:border-box"/>
+            <div style="display:flex;gap:6px">
+              <button class="btn-confirmar-edit" style="flex:1;background:var(--accent);border:none;border-radius:6px;padding:5px;color:white;cursor:pointer;font-size:0.78rem">✓ Aplicar</button>
+              <button class="btn-cancelar-edit" style="flex:1;background:var(--border);border:none;border-radius:6px;padding:5px;color:var(--text);cursor:pointer;font-size:0.78rem">✗ Cancelar</button>
+            </div>
+          </div>`;
+
+        const inputNombre = this.querySelector('.edit-nombre-input');
+        const inputPrecio = this.querySelector('.edit-precio-input');
+        inputPrecio.focus();
+
+        const nombreOriginal = fila.competidor_nombre;
+        const precioOriginal = fila.precio_venta;
+
+        const confirmar = () => {
+          const nuevoNombre = inputNombre.value.trim();
+          const nuevoPrecio = parseFloat(inputPrecio.value);
+          if (nuevoNombre) fila.competidor_nombre = nuevoNombre;
+          if (!isNaN(nuevoPrecio) && nuevoPrecio > 0) {
+            fila.precio_venta = nuevoPrecio;
+            const margen = parseFloat(document.getElementById('margen-input')?.value || 20);
+            const nuevo_usd = calcularUSD(nuevoPrecio, margen, _ivaActual, fila.imp_int || 0, _dolarActual);
+            fila.precio_compra_usd = Math.round(nuevo_usd * 100) / 100;
+            // Actualizar celda precio y USD
+            const precioCell = document.querySelector(`.precio-editable[data-idx="${idx}"][data-escg="${esCG}"]`);
+            if (precioCell) precioCell.textContent = fmt(fila.precio_venta);
+            const usdCell = document.querySelector(`.usd-cell[data-idx="${idx}"][data-escg="${esCG}"]`);
+            if (usdCell) usdCell.textContent = fmtUSD(fila.precio_compra_usd);
+          }
+          this.style.overflow = '';
+          this.style.whiteSpace = '';
+          this.innerHTML = `${fila.competidor_nombre} <span style="opacity:0.4;font-size:0.7rem">✏️</span>`;
+        };
+
+        const cancelar = () => {
+          fila.competidor_nombre = nombreOriginal;
+          this.style.overflow = '';
+          this.style.whiteSpace = '';
+          this.innerHTML = `${nombreOriginal} <span style="opacity:0.4;font-size:0.7rem">✏️</span>`;
+        };
+
+        this.querySelector('.btn-confirmar-edit').addEventListener('click', confirmar);
+        this.querySelector('.btn-cancelar-edit').addEventListener('click', cancelar);
+        inputPrecio.addEventListener('keydown', e => {
+          if (e.key === 'Enter') confirmar();
+          if (e.key === 'Escape') cancelar();
+        });
+      });
+    });
+  }
+
+  function mostrarResultados(data) {
+    _filasRaw    = data.filas;
+    _dolarActual = data.dolar;
+    _ivaActual   = ivaSeleccionado;
+
+    const filasHG   = _filasRaw.filter(f => !f.es_compragamer);
+    const filasCG   = _filasRaw.filter(f => f.es_compragamer);
+    const total     = filasHG.length;
+    const sinResult = filasHG.filter(f => !f.precio_venta).length;
+    const margenActual = parseFloat(document.getElementById('margen').value) || 20;
+
+    document.getElementById('main-area').innerHTML = `
+      <div class="fade-in">
+        <div class="results-header">
+          <div>
+            <div class="results-title">✓ Resultados</div>
+            <div style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:4px">
+              ${total} productos · ${sinResult} sin resultado · Dólar $${data.dolar.toLocaleString('es-AR')}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(192,132,252,0.1);border:1px solid var(--border2);border-radius:10px;padding:8px 14px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:1px">MARGEN</span>
+              <input type="number" id="margen-live" value="${margenActual}" min="0" max="100" step="1"
+                style="width:60px;background:transparent;border:none;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;outline:none;text-align:center"
+                oninput="sincronizarMargenLive(this.value)">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--accent)">%</span>
+            </div>
+            <div class="downloads">
+              <a class="btn-download" id="btn-analisis" href="#" onclick="descargarAnalisis()">📊 Análisis</a>
+              <button class="btn-download" onclick="mostrarPopupVendedor()" style="background:linear-gradient(135deg,rgba(168,85,247,0.2),rgba(236,72,153,0.15));border-color:var(--accent)">📋 Vendedor</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button id="tab-hg" class="tab-btn active-hg" onclick="switchTab('hg')">HardGamers</button>
+          <button id="tab-cg" class="tab-btn inactive" onclick="switchTab('cg')">CompraGamer</button>
+        </div>
+
+        <div id="panel-hg"></div>
+        <div id="panel-cg" style="display:none"></div>
+      </div>
+    `;
+
+    renderTablas(filasHG, filasCG);
+
+    // margen-live → actualiza panel izquierdo y recalcula
+    document.getElementById('margen-live').addEventListener('input', function() {
+      sincronizarMargenLive(this.value);
+    });
+  }
+
+  // margen-live cambió → actualizar panel izquierdo + recalcular
+  function sincronizarMargenLive(valor) {
+    const panelMargen = document.getElementById('margen');
+    if (panelMargen) panelMargen.value = valor;
+    const m = parseFloat(valor);
+    if (!isNaN(m) && m >= 0) recalcularConMargen(m);
+  }
+
+  function descargarAnalisis() {
+    const margen = parseFloat(document.getElementById('margen-live')?.value || document.getElementById('margen').value) || 20;
+    window.location.href = `/api/descargar/analisis?margen=${margen}`;
+  }
+
+  function mostrarPopupVendedor() {
+    const popup = document.getElementById('popup-vendedor');
+    if (popup) popup.style.display = 'flex';
+  }
+
+  function cerrarPopupVendedor() {
+    const popup = document.getElementById('popup-vendedor');
+    if (popup) popup.style.display = 'none';
+  }
+
+  function exportarVendedor(tipo) {
+    const margen = parseFloat(document.getElementById('margen-live')?.value || document.getElementById('margen').value) || 20;
+    cerrarPopupVendedor();
+    window.location.href = `/api/descargar/vendedor?tipo=${tipo}&margen=${margen}`;
+  }
+
+  function switchTab(tab) {
+    const isHG = tab === 'hg';
+    document.getElementById('panel-hg').style.display = isHG ? '' : 'none';
+    document.getElementById('panel-cg').style.display = isHG ? 'none' : '';
+    document.getElementById('tab-hg').className = `tab-btn ${isHG ? 'active-hg' : 'inactive'}`;
+    document.getElementById('tab-cg').className = `tab-btn ${isHG ? 'inactive' : 'active-cg'}`;
+  }
+</script>
+</body>
+</html>
